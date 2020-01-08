@@ -1,0 +1,216 @@
+
+  //EDIT CAMPGROUND ROUTE
+  
+app.get('/campgrounds/:id/edit', (req, res)=>{
+  Campground.findById(req.params.id, function(err, Foundcampgrounds){
+    if (err) {
+      res.redirect('/campgrounds');
+      console.log(err)
+    } else {
+      res.render('edit', {Chosencampground: Foundcampgrounds});
+     console.log(Foundcampgrounds)
+    }
+  });
+  
+  });
+
+  //update 
+  app.put('/campgrounds/:id', (req, res)=>{
+    Campground.findByIdAndUpdate(req.params.id, req.body.Chosencampground, function(err, Updatedcampground){
+      if (err) {
+        console.log(err)
+        res.redirect('/campgrounds');
+      } else {
+        res.redirect('/campgrounds');
+       console.log(Updatedcampground)
+      }
+    });
+    });
+
+      //delete
+  app.delete('/campgrounds/:id', (req, res)=>{
+    Campground.findByIdAndRemove(req.params.id,function(err){
+      if (err) {
+        console.log(err)
+        res.redirect('/campgrounds');
+      } else {
+        res.redirect('/campgrounds');
+      }
+    });
+    
+    });
+
+
+
+
+    const express   = require('express'),
+     mongoose   = require('mongoose'),
+     methodOverride = require('method-override'),
+     bodyParser = require('body-parser'),
+     Campground = require('./models/campground'),
+     Comment    = require('./models/comment'),
+     seedDB     = require('./seeds')
+    
+          app   = express();
+
+  seedDB();
+app.set('view engine', 'ejs');
+app.use(bodyParser.urlencoded({extended: true}));
+app.use(methodOverride("_method"));
+
+// Connect to MongoDB
+mongoose
+  .connect(
+    'mongodb+srv://dbMavimbela:Mavimbela21@cluster0-ag03f.mongodb.net/test?retryWrites=true&w=majority',
+    { useNewUrlParser: true,
+     useUnifiedTopology: true }
+  )
+  .then(() => console.log('MongoDB Connected'))
+  .catch(err => console.log(err));
+
+
+//==============================================================
+//==============================================================
+//        ------     OUR ROUTES  -------
+//==============================================================
+//==============================================================
+
+
+app.get('/', (req, res)=>{
+res.render('landing');
+});
+
+app.get('/campgrounds', (req, res)=>{
+
+  Campground.find({}, function(err, Allcampgrounds){
+     if (err) {
+       console.log(err)
+     } else {
+       res.render('campgrounds/campgrounds', {campgrounds: Allcampgrounds});
+      console.log(Allcampgrounds)
+     }
+  })
+
+});
+
+app.post('/campgrounds', (req,res)=>{
+
+//add new campground and push to the campground store
+const name = req.body.name;
+const image = req.body.image;
+const description = req.body.description;
+const newCampground = {name:name, image:image, description: description};
+
+Campground.create(newCampground, function(err, Createdcampgrounds){
+  if (err) {
+    console.log(err)
+  } else {
+   res.redirect('/campgrounds');
+  }
+});
+});
+
+app.get('/campgrounds/new', (req, res)=>{
+res.render('campgrounds/new');
+});
+// SHOW - shows more info about one campground
+app.get('/campgrounds/:id', (req, res)=>{
+  Campground.findById(req.params.id).populate("comments").exec( function(err, foundcampground){
+    if (err) {
+      console.log(err)
+    } else {
+        //render show template with that campground
+      res.render('campgrounds/show', {campground: foundcampground});
+     console.log(campgrounds)
+    }
+  });
+  });
+
+
+//=======================
+// CCOMMENTS ROUTES
+//=======================
+
+app.get('/campgrounds/:id/comments/new', (req, res)=>{
+
+  //find campground by id
+  Campground.findById(req.params.id, function(err, campground){
+    if (err) {
+      console.log(err)
+    } else {
+      res.render('comments/new', {campground: campground});
+    }
+  })
+});
+app.post('/campgrounds/:id/comments', (req, res)=>{
+  // lookup campground by id
+  Campground.findById(req.params.id, function(err, campground){
+    if (err) {
+      console.log(err)
+      res.redirect('/campgrounds');
+    } else {
+      Comment.create(req.body.comment, function(err, comment){
+         if (err) {
+           console.log(err)
+         } else {
+           campground.comments.push(comment);
+           campground.save();
+           res.redirect('/campgrounds', + campground._id);
+         }
+      })
+    }
+  })
+
+})
+
+app.listen(8000,()=>{
+    console.log('Serving is listening at PORT: 8000');
+});
+
+
+
+app.get('/register', (req,res)=>{
+  res.render('campgrounds/register');
+})
+
+
+app.get('/login', (req,res)=>{
+  res.render('campgrounds/login');
+})
+
+
+      <div class="col-md-9">
+            <div class="thumbnail">
+                <img class="img-responsive" src="<%= campground.image %>">
+                <div class="caption-full">
+                    <h4 class="text-right">R500.00/night</h4>
+                    <h4><a><%=campground.name%></a></h4>
+                    <p><%= campground.description %></p>
+                </div>
+
+            <% if(currentUser && campground.author.id.equals(currentUser._id)){ %>
+                <a class="btn btn-warning btn-xs" href="/campgrounds/<%= campground.id %>/edit">Edit</a>
+
+                <form action="/campgrounds/<%= campground.id %>?_method=DELETE" method="POST" class="form-inline">
+                    <button class="btn btn-danger">Delete</button> 
+                </form>
+               <%}%> 
+            </div>
+            <div class="well">
+                <div class="text-right">
+                    <a class="btn btn-success" href="/campgrounds/<%= campground._id %>/comments/new">Add New Comment</a>
+                </div>
+                <hr>
+                <% campground.comments.forEach(function(comment){ %>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <strong><%= comment.author %></strong>
+                            <span class="text-right">10 days ago</span>
+                            <p>
+                                <%= comment.text %> 
+                            </p>
+                        </div>
+                    </div>
+                <% }) %>
+            </div>
+        </div>
