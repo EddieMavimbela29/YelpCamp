@@ -19,7 +19,7 @@ var commentRoutes    = require("./routes/comments"),
     // Connect to MongoDB
 mongoose
   .connect(
-    'mongodb://localhost:27017/test',
+    'mongodb://localhost:27017/campgrounds',
     { useNewUrlParser: true,
      useUnifiedTopology: true }
   )
